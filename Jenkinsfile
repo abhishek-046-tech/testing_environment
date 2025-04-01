@@ -28,8 +28,7 @@ pipeline {
 
         stage('Run Unit & Integration Tests') {
             steps {
-                sh 'npm run test:unit'  // Example Jest or Mocha test command
-                sh 'npm run test:integration'
+                sh 'npx jest --ci --reporters=default --reporters=jest-junit'  // Run tests using npx to avoid global dependency
             }
             post {
                 always {
