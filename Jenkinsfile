@@ -22,7 +22,7 @@ pipeline {
                     }
                 }
                 sh 'node -v'
-                sh 'npm install'
+                sh 'npm install'  // Install all dependencies, including jest and jest-junit
             }
         }
 
@@ -32,7 +32,7 @@ pipeline {
             }
             post {
                 always {
-                    junit 'reports/unit-tests.xml'
+                    junit 'reports/jest-junit.xml'  // Publish JUnit test results in Jenkins
                 }
             }
         }
@@ -43,7 +43,7 @@ pipeline {
             }
             post {
                 always {
-                    junit 'reports/api-tests.xml'
+                    junit 'reports/api-tests.xml'  // Publish API test results in Jenkins
                 }
             }
         }
@@ -72,7 +72,7 @@ pipeline {
                     sh 'npm run test:coverage'  // Example command to generate coverage reports
                     sh 'mkdir -p test-reports && mv coverage test-reports/'  // Store coverage reports
                 }
-                archiveArtifacts artifacts: 'test-reports/**/*', fingerprint: true
+                archiveArtifacts artifacts: 'test-reports/**/*', fingerprint: true  // Archive coverage reports as artifacts
             }
         }
     }
