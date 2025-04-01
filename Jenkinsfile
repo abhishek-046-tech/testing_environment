@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/abhishek-046-tech/testing_environment.git'
+                git branch: 'main', url: 'https://github.com/abhishek-046-tech/testing_environment.git'
             }
         }
 
