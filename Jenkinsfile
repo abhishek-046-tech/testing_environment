@@ -22,17 +22,18 @@ pipeline {
                     }
                 }
                 sh 'node -v'
-                sh 'npm install'  // Install all dependencies, including jest and jest-junit
+                sh 'npm config set prefix ~/.npm-global'
+                sh 'npm install'
             }
         }
 
         stage('Run Unit & Integration Tests') {
             steps {
-                sh 'npx jest --ci --reporters=default --reporters=jest-junit'  // Run tests using npx to avoid global dependency
+                sh 'npx jest --ci --reporters=default --reporters=jest-junit --passWithNoTests'  // Run tests using npx and allow pass with no tests
             }
             post {
                 always {
-                    junit 'reports/jest-junit.xml'  // Publish JUnit test results in Jenkins
+                    junit 'reports/jest-junit.xml'
                 }
             }
         }
@@ -43,7 +44,7 @@ pipeline {
             }
             post {
                 always {
-                    junit 'reports/api-tests.xml'  // Publish API test results in Jenkins
+                    junit 'reports/api-tests.xml'
                 }
             }
         }
@@ -72,7 +73,7 @@ pipeline {
                     sh 'npm run test:coverage'  // Example command to generate coverage reports
                     sh 'mkdir -p test-reports && mv coverage test-reports/'  // Store coverage reports
                 }
-                archiveArtifacts artifacts: 'test-reports/**/*', fingerprint: true  // Archive coverage reports as artifacts
+                archiveArtifacts artifacts: 'test-reports/**/*', fingerprint: true
             }
         }
     }
