@@ -1,0 +1,6 @@
+"scripts": {
+  "test:unit": "jest --ci --reporters=default --reporters=jest-junit",
+  "test:api": "newman run tests/api_collection.json -r junit",
+  "test:e2e": "cypress run --reporter junit",
+  "test:coverage": "jest --coverage"
+}
