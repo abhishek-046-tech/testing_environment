@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/your-repo.git'
+                git 'git@github.com:abhishek-046-tech/testing_environment.git'
             }
         }
 
