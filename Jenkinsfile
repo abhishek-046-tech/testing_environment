@@ -116,7 +116,8 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying application...'
-                sh './deploy.sh'  // Replace with actual deployment script
+                sh 'chmod +x deploy.sh'  // Grant execute permission
+                sh './deploy.sh'  // Run deployment script
             }
         }
     }
