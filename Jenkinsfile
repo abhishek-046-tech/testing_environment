@@ -2,6 +2,7 @@ pipeline {
     agent {
         docker {
             image 'cypress/included:9.7.0'  // Using Cypress Docker image with all dependencies
+            args '--ipc=host'  // Ensures Cypress runs without memory issues
         }
     }
 
