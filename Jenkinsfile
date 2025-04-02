@@ -2,13 +2,19 @@ pipeline {
     agent any
 
     environment {
-        NODEJS_VERSION = '18'  // Adjust as needed
+        NODEJS_VERSION = '18'
     }
 
     stages {
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/abhishek-046-tech/testing_environment.git'
+            }
+        }
+
+        stage('Static Code Analysis') {
+            steps {
+                sh 'npm run lint || true'  // Runs ESLint
             }
         }
 
@@ -29,71 +35,74 @@ pipeline {
 
         stage('Run Unit & Integration Tests') {
             steps {
-                sh 'npx jest --ci --reporters=default --reporters=jest-junit --passWithNoTests'  // Allow Jest to pass even if no tests are found
+                sh 'npx jest --ci --reporters=default --reporters=jest-junit --passWithNoTests'
+                sh 'npx mocha --reporter mocha-junit-reporter || true'
             }
             post {
                 always {
-                    script {
-                        def testFiles = sh(script: "ls reports/jest-junit.xml 2>/dev/null || echo 'not_found'", returnStdout: true).trim()
-                        if (testFiles != 'not_found') {
-                            junit allowEmptyResults: true, testResults: 'reports/jest-junit.xml'
-                        } else {
-                            echo 'No test results found, skipping report collection.'
-                        }
-                    }
+                    junit allowEmptyResults: true, testResults: 'reports/*.xml'
                 }
             }
         }
 
         stage('API Test Automation') {
             steps {
-                sh 'npm run test:api || true'  // Avoid failure if tests are missing
+                sh 'npm run test:api || true'
             }
             post {
                 always {
-                    script {
-                        def testFiles = sh(script: "ls reports/api-tests.xml 2>/dev/null || echo 'not_found'", returnStdout: true).trim()
-                        if (testFiles != 'not_found') {
-                            junit allowEmptyResults: true, testResults: 'reports/api-tests.xml'
-                        } else {
-                            echo 'No API test results found, skipping report collection.'
-                        }
-                    }
+                    junit allowEmptyResults: true, testResults: 'reports/api-tests.xml'
                 }
             }
         }
 
         stage('Run End-to-End Tests with Cypress') {
             steps {
-                sh 'npm run test:e2e || true'  // Avoid failure if Cypress tests are missing
+                sh 'npm run test:e2e || true'
             }
             post {
                 always {
-                    script {
-                        def reportExists = sh(script: "ls cypress/reports/index.html 2>/dev/null || echo 'not_found'", returnStdout: true).trim()
-                        if (reportExists != 'not_found') {
-                            publishHTML([
-                                allowMissing: true,
-                                alwaysLinkToLastBuild: true,
-                                keepAll: true,
-                                reportDir: 'cypress/reports',
-                                reportFiles: 'index.html',
-                                reportName: 'Cypress Test Report'
-                            ])
-                        } else {
-                            echo 'No Cypress test report found, skipping.'
-                        }
-                    }
+                    publishHTML([
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'cypress/reports',
+                        reportFiles: 'index.html',
+                        reportName: 'Cypress Test Report'
+                    ])
                 }
+            }
+        }
+
+        stage('Security Scanning') {
+            steps {
+                sh 'npm audit --audit-level=high || true'  // Runs a security audit
+            }
+        }
+
+        stage('Performance Testing') {
+            steps {
+                sh 'npm run test:performance || true'  // Executes performance tests using JMeter/K6
+            }
+        }
+
+        stage('Code Build') {
+            steps {
+                sh 'npm run build'  // Build step before deployment
+            }
+        }
+
+        stage('Build & Deploy') {
+            steps {
+                sh 'docker build -t my-app:latest .'
+                sh 'docker run -d -p 3000:3000 my-app:latest'
             }
         }
 
         stage('Generate and Publish Test Reports') {
             steps {
-                script {
-                    sh 'npm run test:coverage || true'  // Avoid failure if coverage doesn't exist
-                    sh 'mkdir -p test-reports && mv coverage test-reports/ || true'  // Avoid failure if coverage folder is missing
-                }
+                sh 'npm run test:coverage || true'
+                sh 'mkdir -p test-reports && mv coverage test-reports/ || true'
                 archiveArtifacts artifacts: 'test-reports/**/*', fingerprint: true, allowEmptyArchive: true
             }
         }
