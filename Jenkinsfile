@@ -8,7 +8,16 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/abhishek-046-tech/testing_environment.git'
+                script {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        userRemoteConfigs: [[
+                            url: 'https://github.com/abhishek-046-tech/testing_environment.git',
+                            credentialsId: 'github-credentials' // Ensure credentials are set up in Jenkins
+                        ]]
+                    ])
+                }
             }
         }
 
