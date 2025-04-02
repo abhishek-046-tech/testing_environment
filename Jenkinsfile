@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'cypress/included:9.7.0'  // Using Cypress Docker image with all dependencies
-            args '--ipc=host'  // Ensures Cypress runs without memory issues
-        }
-    }
+    agent any  // Using 'any' and defining Docker inside steps
 
     environment {
         NODEJS_VERSION = '18'
@@ -25,16 +20,24 @@ pipeline {
 
         stage('Setup Node.js & Install Dependencies') {
             steps {
-                sh 'node -v'
-                sh 'npm config set prefix ~/.npm-global'
-                sh 'npm install'
+                script {
+                    docker.image('cypress/included:9.7.0').inside('--ipc=host') {
+                        sh 'node -v'
+                        sh 'npm config set prefix ~/.npm-global'
+                        sh 'npm install'
+                    }
+                }
             }
         }
 
         stage('Run Unit & Integration Tests') {
             steps {
-                sh 'npx jest --ci --reporters=default --reporters=jest-junit --passWithNoTests'
-                sh 'npx mocha --reporter mocha-junit-reporter || true'
+                script {
+                    docker.image('cypress/included:9.7.0').inside('--ipc=host') {
+                        sh 'npx jest --ci --reporters=default --reporters=jest-junit --passWithNoTests'
+                        sh 'npx mocha --reporter mocha-junit-reporter || true'
+                    }
+                }
             }
             post {
                 always {
@@ -45,7 +48,11 @@ pipeline {
 
         stage('API Test Automation') {
             steps {
-                sh 'npm run test:api || true'
+                script {
+                    docker.image('cypress/included:9.7.0').inside('--ipc=host') {
+                        sh 'npm run test:api || true'
+                    }
+                }
             }
             post {
                 always {
@@ -56,7 +63,11 @@ pipeline {
 
         stage('Run End-to-End Tests with Cypress') {
             steps {
-                sh 'npm run test:e2e || true'
+                script {
+                    docker.image('cypress/included:9.7.0').inside('--ipc=host') {
+                        sh 'npm run test:e2e || true'
+                    }
+                }
             }
             post {
                 always {
