@@ -15,11 +15,14 @@ pipeline {
         stage('Static Code Analysis') {
             steps {
                 script {
-                    def hasLintScript = sh(script: "npm run | grep -w 'lint' || echo 'not_found'", returnStdout: true).trim()
-                    if (hasLintScript != 'not_found') {
-                        sh 'npm run lint'
-                    } else {
-                        echo 'Lint script not found, skipping...'
+                    docker.image('node:18').inside {
+                        sh 'npm install eslint --save-dev' // Ensure ESLint is installed
+                        def hasLintScript = sh(script: "npm run | grep -w 'lint' || echo 'not_found'", returnStdout: true).trim()
+                        if (hasLintScript != 'not_found') {
+                            sh 'npm run lint'
+                        } else {
+                            echo 'Lint script not found, skipping...'
+                        }
                     }
                 }
             }
