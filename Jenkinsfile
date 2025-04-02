@@ -14,7 +14,7 @@ pipeline {
                         branches: [[name: '*/main']],
                         userRemoteConfigs: [[
                             url: 'https://github.com/abhishek-046-tech/testing_environment.git',
-                            credentialsId: 'github-credentials' // Ensure credentials are set up in Jenkins
+                            credentialsId: 'github-credentials-2' // Ensure credentials are set up in Jenkins
                         ]]
                     ])
                 }
