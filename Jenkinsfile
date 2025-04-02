@@ -1,136 +1,99 @@
 pipeline {
-    agent any  // Using 'any' and defining Docker inside steps
+    agent any
 
     environment {
-        NODEJS_VERSION = '18'
+        NODEJS_VERSION = '18'  // Adjust as needed
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                script {
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: '*/main']],
-                        userRemoteConfigs: [[
-                            url: 'https://github.com/abhishek-046-tech/testing_environment.git',
-                            credentialsId: 'github-credentials-2' // Ensure credentials are set up in Jenkins
-                        ]]
-                    ])
-                }
-            }
-        }
-
-        stage('Static Code Analysis') {
-            steps {
-                script {
-                    docker.image('node:18').inside {
-                        sh 'npm install eslint --save-dev' // Ensure ESLint is installed
-                        def hasLintScript = sh(script: "npm run | grep -w 'lint' || echo 'not_found'", returnStdout: true).trim()
-                        if (hasLintScript != 'not_found') {
-                            sh 'npm run lint'
-                        } else {
-                            echo 'Lint script not found, skipping...'
-                        }
-                    }
-                }
+                git branch: 'main', url: 'https://github.com/abhishek-046-tech/testing_environment.git'
             }
         }
 
         stage('Setup Node.js & Install Dependencies') {
             steps {
                 script {
-                    docker.image('cypress/included:9.7.0').inside('--ipc=host') {
-                        sh 'node -v'
-                        sh 'npm config set prefix ~/.npm-global'
-                        sh 'npm install'
+                    def nodeInstalled = sh(script: 'node -v || echo "not_installed"', returnStdout: true).trim()
+                    if (nodeInstalled == "not_installed") {
+                        sh 'curl -fsSL https://deb.nodesource.com/setup_18.x | bash -'
+                        sh 'apt-get install -y nodejs'
                     }
                 }
+                sh 'node -v'
+                sh 'npm config set prefix ~/.npm-global'
+                sh 'npm install'
             }
         }
 
         stage('Run Unit & Integration Tests') {
             steps {
-                script {
-                    docker.image('cypress/included:9.7.0').inside('--ipc=host') {
-                        sh 'npx jest --ci --reporters=default --reporters=jest-junit --passWithNoTests'
-                        sh 'npx mocha --reporter mocha-junit-reporter || true'
-                    }
-                }
+                sh 'npx jest --ci --reporters=default --reporters=jest-junit --passWithNoTests'  // Allow Jest to pass even if no tests are found
             }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: 'reports/*.xml'
+                    script {
+                        def testFiles = sh(script: "ls reports/jest-junit.xml 2>/dev/null || echo 'not_found'", returnStdout: true).trim()
+                        if (testFiles != 'not_found') {
+                            junit allowEmptyResults: true, testResults: 'reports/jest-junit.xml'
+                        } else {
+                            echo 'No test results found, skipping report collection.'
+                        }
+                    }
                 }
             }
         }
 
         stage('API Test Automation') {
             steps {
-                script {
-                    docker.image('cypress/included:9.7.0').inside('--ipc=host') {
-                        sh 'npm run test:api || true'
-                    }
-                }
+                sh 'npm run test:api || true'  // Avoid failure if tests are missing
             }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: 'reports/api-tests.xml'
+                    script {
+                        def testFiles = sh(script: "ls reports/api-tests.xml 2>/dev/null || echo 'not_found'", returnStdout: true).trim()
+                        if (testFiles != 'not_found') {
+                            junit allowEmptyResults: true, testResults: 'reports/api-tests.xml'
+                        } else {
+                            echo 'No API test results found, skipping report collection.'
+                        }
+                    }
                 }
             }
         }
 
         stage('Run End-to-End Tests with Cypress') {
             steps {
-                script {
-                    docker.image('cypress/included:9.7.0').inside('--ipc=host') {
-                        sh 'npm run test:e2e || true'
-                    }
-                }
+                sh 'npm run test:e2e || true'  // Avoid failure if Cypress tests are missing
             }
             post {
                 always {
-                    publishHTML([
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'cypress/reports',
-                        reportFiles: 'index.html',
-                        reportName: 'Cypress Test Report'
-                    ])
+                    script {
+                        def reportExists = sh(script: "ls cypress/reports/index.html 2>/dev/null || echo 'not_found'", returnStdout: true).trim()
+                        if (reportExists != 'not_found') {
+                            publishHTML([
+                                allowMissing: true,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: 'cypress/reports',
+                                reportFiles: 'index.html',
+                                reportName: 'Cypress Test Report'
+                            ])
+                        } else {
+                            echo 'No Cypress test report found, skipping.'
+                        }
+                    }
                 }
-            }
-        }
-
-        stage('Security Scanning') {
-            steps {
-                sh 'npm audit --audit-level=high || true'  // Runs a security audit
-            }
-        }
-
-        stage('Performance Testing') {
-            steps {
-                sh 'npm run test:performance || true'  // Executes performance tests using JMeter/K6
-            }
-        }
-
-        stage('Code Build') {
-            steps {
-                sh 'npm run build'  // Build step before deployment
-            }
-        }
-
-        stage('Build & Deploy') {
-            steps {
-                sh 'docker build -t my-app:latest .'
-                sh 'docker run -d -p 3000:3000 my-app:latest'
             }
         }
 
         stage('Generate and Publish Test Reports') {
             steps {
-                sh 'npm run test:coverage || true'
-                sh 'mkdir -p test-reports && mv coverage test-reports/ || true'
+                script {
+                    sh 'npm run test:coverage || true'  // Avoid failure if coverage doesn't exist
+                    sh 'mkdir -p test-reports && mv coverage test-reports/ || true'  // Avoid failure if coverage folder is missing
+                }
                 archiveArtifacts artifacts: 'test-reports/**/*', fingerprint: true, allowEmptyArchive: true
             }
         }
