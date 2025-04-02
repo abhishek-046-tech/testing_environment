@@ -19,20 +19,21 @@ pipeline {
         }
 
         stage('Setup Node.js & Install Dependencies') {
-            steps {
-                script {
-                    def nodeInstalled = sh(script: 'node -v || echo "not_installed"', returnStdout: true).trim()
-                    if (nodeInstalled == "not_installed") {
-                        sh 'curl -fsSL https://deb.nodesource.com/setup_18.x | bash -'
-                        sh 'apt-get install -y nodejs'
-                    }
-                }
-                sh 'node -v'
-                sh 'npm config set prefix ~/.npm-global'
-                sh 'npm install'
-                sh 'apt-get update && apt-get install -y xvfb'  // Install Xvfb for Cypress
+    steps {
+        script {
+            def nodeInstalled = sh(script: 'node -v || echo "not_installed"', returnStdout: true).trim()
+            if (nodeInstalled == "not_installed") {
+                sh 'curl -fsSL https://deb.nodesource.com/setup_18.x | sudo bash -'
+                sh 'sudo apt-get install -y nodejs'
             }
         }
+        sh 'node -v'
+        sh 'npm config set prefix ~/.npm-global'
+        sh 'npm install'
+        sh 'sudo apt-get update && sudo apt-get install -y xvfb'  // Install Xvfb for Cypress
+    }
+}
+
 
         stage('Run Unit & Integration Tests') {
             steps {
