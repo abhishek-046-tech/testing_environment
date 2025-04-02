@@ -94,15 +94,22 @@ pipeline {
                     sh 'npm run test:coverage || true'
                     sh 'mkdir -p test-reports && mv coverage test-reports/ || true'
                 }
-                archiveArtifacts artifacts: 'test-reports/**/*', fingerprint: true, allowEmptyArchive: true
+                archiveArtifacts artifacts: '**/*', fingerprint: true, allowEmptyArchive: true
             }
         }
 
         stage('Code Build') {
             steps {
                 echo 'Building application...'
-                sh 'npm run build'  // Modify as needed for your project
-                archiveArtifacts artifacts: 'dist/**/*', fingerprint: true
+                script {
+                    def buildScript = sh(script: "npm run | grep build || echo 'not_found'", returnStdout: true).trim()
+                    if (buildScript != 'not_found') {
+                        sh 'npm run build'
+                    } else {
+                        echo 'No build script found in package.json, skipping build stage.'
+                    }
+                }
+                archiveArtifacts artifacts: '**/*', fingerprint: true
             }
         }
 
