@@ -30,6 +30,7 @@ pipeline {
                 sh 'node -v'
                 sh 'npm config set prefix ~/.npm-global'
                 sh 'npm install'
+                sh 'apt-get update && apt-get install -y xvfb'  // Install Xvfb for Cypress
             }
         }
 
@@ -58,6 +59,8 @@ pipeline {
 
         stage('Run End-to-End Tests with Cypress') {
             steps {
+                sh 'Xvfb :99 -ac &'
+                sh 'export DISPLAY=:99.0'
                 sh 'npm run test:e2e || true'
             }
             post {
