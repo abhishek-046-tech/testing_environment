@@ -14,7 +14,14 @@ pipeline {
 
         stage('Static Code Analysis') {
             steps {
-                sh 'npm run lint || true'  // Runs ESLint
+                script {
+                    def hasLintScript = sh(script: "npm run | grep -w 'lint' || echo 'not_found'", returnStdout: true).trim()
+                    if (hasLintScript != 'not_found') {
+                        sh 'npm run lint'
+                    } else {
+                        echo 'Lint script not found, skipping...'
+                    }
+                }
             }
         }
 
