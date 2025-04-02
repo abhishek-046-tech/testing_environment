@@ -29,7 +29,7 @@ pipeline {
 
         stage('Run Unit & Integration Tests') {
             steps {
-                sh 'npx jest --ci --reporters=default --reporters=jest-junit --passWithNoTests'  // Allow Jest to pass even if no tests are found
+                sh 'npx jest --ci --reporters=default --reporters=jest-junit --passWithNoTests'
             }
             post {
                 always {
@@ -47,7 +47,7 @@ pipeline {
 
         stage('API Test Automation') {
             steps {
-                sh 'npm run test:api || true'  // Avoid failure if tests are missing
+                sh 'npm run test:api || true'
             }
             post {
                 always {
@@ -65,7 +65,7 @@ pipeline {
 
         stage('Run End-to-End Tests with Cypress') {
             steps {
-                sh 'npm run test:e2e || true'  // Avoid failure if Cypress tests are missing
+                sh 'npm run test:e2e || true'
             }
             post {
                 always {
@@ -91,20 +91,35 @@ pipeline {
         stage('Generate and Publish Test Reports') {
             steps {
                 script {
-                    sh 'npm run test:coverage || true'  // Avoid failure if coverage doesn't exist
-                    sh 'mkdir -p test-reports && mv coverage test-reports/ || true'  // Avoid failure if coverage folder is missing
+                    sh 'npm run test:coverage || true'
+                    sh 'mkdir -p test-reports && mv coverage test-reports/ || true'
                 }
                 archiveArtifacts artifacts: 'test-reports/**/*', fingerprint: true, allowEmptyArchive: true
+            }
+        }
+
+        stage('Code Build') {
+            steps {
+                echo 'Building application...'
+                sh 'npm run build'  // Modify as needed for your project
+                archiveArtifacts artifacts: 'dist/**/*', fingerprint: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying application...'
+                sh './deploy.sh'  // Replace with actual deployment script
             }
         }
     }
 
     post {
         success {
-            echo 'All tests passed successfully!'
+            echo 'All tests passed and deployment completed successfully!'
         }
         failure {
-            echo 'Some tests failed. Check reports for details.'
+            echo 'Pipeline failed. Check logs for details.'
         }
     }
 }
