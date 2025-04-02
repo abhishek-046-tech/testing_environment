@@ -1,5 +1,9 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'cypress/included:9.7.0'  // Using Cypress Docker image with all dependencies
+        }
+    }
 
     environment {
         NODEJS_VERSION = '18'
@@ -20,17 +24,9 @@ pipeline {
 
         stage('Setup Node.js & Install Dependencies') {
             steps {
-                script {
-                    def nodeInstalled = sh(script: 'node -v || echo "not_installed"', returnStdout: true).trim()
-                    if (nodeInstalled == "not_installed") {
-                        sh 'curl -fsSL https://deb.nodesource.com/setup_18.x | bash -'
-                        sh 'apt-get update && apt-get install -y nodejs'
-                    }
-                }
                 sh 'node -v'
                 sh 'npm config set prefix ~/.npm-global'
                 sh 'npm install'
-                sh 'apt-get update && apt-get install -y xvfb'  // Install Xvfb for Cypress
             }
         }
 
@@ -59,8 +55,6 @@ pipeline {
 
         stage('Run End-to-End Tests with Cypress') {
             steps {
-                sh 'Xvfb :99 -ac &'
-                sh 'export DISPLAY=:99.0'
                 sh 'npm run test:e2e || true'
             }
             post {
